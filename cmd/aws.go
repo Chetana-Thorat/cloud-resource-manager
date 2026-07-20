@@ -1,40 +1,67 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/Chetana-Thorat/cloud-resource-manager/internal/services"
 	"github.com/spf13/cobra"
 )
 
-// awsCmd represents the aws command
 var awsCmd = &cobra.Command{
 	Use:   "aws",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "AWS resource operations",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("aws called")
+		fmt.Println("Use one of: create, list, delete")
+	},
+}
+
+var cloudProvider = services.NewMockCloudProvider()
+
+var awsCreateCmd = &cobra.Command{
+	Use:   "create [name]",
+	Short: "Create a mock AWS resource",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := cloudProvider.CreateResource(args[0]); err != nil {
+			fmt.Println("error:", err)
+			os.Exit(1)
+		}
+		fmt.Println("created:", args[0])
+	},
+}
+
+var awsListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List mock AWS resources",
+	Run: func(cmd *cobra.Command, args []string) {
+		resources := cloudProvider.ListResources()
+		if len(resources) == 0 {
+			fmt.Println("no resources found")
+			return
+		}
+		for _, r := range resources {
+			fmt.Println(r)
+		}
+	},
+}
+
+var awsDeleteCmd = &cobra.Command{
+	Use:   "delete [name]",
+	Short: "Delete a mock AWS resource",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := cloudProvider.DeleteResource(args[0]); err != nil {
+			fmt.Println("error:", err)
+			os.Exit(1)
+		}
+		fmt.Println("deleted:", args[0])
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(awsCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// awsCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// awsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	awsCmd.AddCommand(awsCreateCmd)
+	awsCmd.AddCommand(awsListCmd)
+	awsCmd.AddCommand(awsDeleteCmd)
 }
