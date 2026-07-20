@@ -2,11 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"os"
+	"time"
 
 	"github.com/Chetana-Thorat/cloud-resource-manager/internal/services"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
+
+var cloudProvider = services.NewMockCloudProvider()
 
 var awsCmd = &cobra.Command{
 	Use:   "aws",
@@ -16,33 +19,59 @@ var awsCmd = &cobra.Command{
 	},
 }
 
-var cloudProvider = services.NewMockCloudProvider()
-
 var awsCreateCmd = &cobra.Command{
 	Use:   "create [name]",
 	Short: "Create a mock AWS resource",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := cloudProvider.CreateResource(args[0]); err != nil {
-			fmt.Println("error:", err)
-			os.Exit(1)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		start := time.Now()
+		name := args[0]
+
+		if err := cloudProvider.CreateResource(name); err != nil {
+			if appLogger != nil {
+				appLogger.Error("create resource failed",
+					zap.String("resource", name),
+					zap.Error(err),
+				)
+			}
+			return err
 		}
-		fmt.Println("created:", args[0])
+
+		if appLogger != nil {
+			appLogger.Info("resource created",
+				zap.String("resource", name),
+				zap.Duration("duration", time.Since(start)),
+			)
+		}
+
+		fmt.Println("created:", name)
+		return nil
 	},
 }
 
 var awsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List mock AWS resources",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		start := time.Now()
 		resources := cloudProvider.ListResources()
+
+		if appLogger != nil {
+			appLogger.Info("resources listed",
+				zap.Int("count", len(resources)),
+				zap.Duration("duration", time.Since(start)),
+			)
+		}
+
 		if len(resources) == 0 {
 			fmt.Println("no resources found")
-			return
+			return nil
 		}
+
 		for _, r := range resources {
 			fmt.Println(r)
 		}
+		return nil
 	},
 }
 
@@ -50,12 +79,29 @@ var awsDeleteCmd = &cobra.Command{
 	Use:   "delete [name]",
 	Short: "Delete a mock AWS resource",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := cloudProvider.DeleteResource(args[0]); err != nil {
-			fmt.Println("error:", err)
-			os.Exit(1)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		start := time.Now()
+		name := args[0]
+
+		if err := cloudProvider.DeleteResource(name); err != nil {
+			if appLogger != nil {
+				appLogger.Error("delete resource failed",
+					zap.String("resource", name),
+					zap.Error(err),
+				)
+			}
+			return err
 		}
-		fmt.Println("deleted:", args[0])
+
+		if appLogger != nil {
+			appLogger.Info("resource deleted",
+				zap.String("resource", name),
+				zap.Duration("duration", time.Since(start)),
+			)
+		}
+
+		fmt.Println("deleted:", name)
+		return nil
 	},
 }
 

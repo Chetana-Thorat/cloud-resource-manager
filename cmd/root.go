@@ -1,41 +1,49 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
 	"os"
+	"time"
 
+	"github.com/Chetana-Thorat/cloud-resource-manager/internal/logger"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "cloudctl",
-	Short: "Cloud resource management CLI",
-	Long:  `A Go CLI for automating AWS resource provisioning and Kubernetes operations.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
-}
+var (
+	rootCmd = &cobra.Command{
+		Use:   "cloudctl",
+		Short: "Cloud resource management CLI",
+		Long:  "A Go CLI for automating AWS resource provisioning and Kubernetes operations.",
+	}
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+	appLogger    *zap.Logger
+	commandStart time.Time
+)
+
+// Execute adds all child commands to the root command and runs it.
 func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	var err error
+	appLogger, err = logger.New()
+	if err != nil {
+		panic(err)
+	}
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cloud-resource-manager.yaml)")
+	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		commandStart = time.Now()
+		appLogger.Info("command started", zap.String("command", cmd.CommandPath()))
+	}
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentPostRun = func(cmd *cobra.Command, args []string) {
+		appLogger.Info(
+			"command finished",
+			zap.String("command", cmd.CommandPath()),
+			zap.Duration("duration", time.Since(commandStart)),
+		)
+	}
 }
