@@ -1,40 +1,54 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
 
+	"github.com/Chetana-Thorat/cloud-resource-manager/internal/services"
 	"github.com/spf13/cobra"
 )
 
-// k8sCmd represents the k8s command
+var k8sProvider = services.NewMockKubernetesProvider()
+
 var k8sCmd = &cobra.Command{
 	Use:   "k8s",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Kubernetes operations",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("k8s called")
+		fmt.Println("Use one of: pods, deployments, rollout")
+	},
+}
+
+var k8sPodsCmd = &cobra.Command{
+	Use:   "pods",
+	Short: "List pods",
+	Run: func(cmd *cobra.Command, args []string) {
+		for _, p := range k8sProvider.GetPods() {
+			fmt.Println(p)
+		}
+	},
+}
+
+var k8sDeploymentsCmd = &cobra.Command{
+	Use:   "deployments",
+	Short: "List deployments",
+	Run: func(cmd *cobra.Command, args []string) {
+		for _, d := range k8sProvider.GetDeployments() {
+			fmt.Println(d)
+		}
+	},
+}
+
+var k8sRolloutCmd = &cobra.Command{
+	Use:   "rollout [name]",
+	Short: "Check rollout status",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println(k8sProvider.RolloutStatus(args[0]))
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(k8sCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// k8sCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// k8sCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	k8sCmd.AddCommand(k8sPodsCmd)
+	k8sCmd.AddCommand(k8sDeploymentsCmd)
+	k8sCmd.AddCommand(k8sRolloutCmd)
 }
